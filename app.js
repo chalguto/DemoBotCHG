@@ -1,84 +1,61 @@
 require('dotenv').config();
 
-/*-----------------------------------------------------------------------------
-A simple Language Understanding (LUIS) bot for the Microsoft Bot Framework. 
------------------------------------------------------------------------------*/
+const express = require('express'),
+    path = require('path'),
+    favicon = require('serve-favicon'),
+    logger = require('morgan'),
+    cookieParser = require('cookie-parser'),
+    bodyParser = require('body-parser'),
+    routes = require('./routes/index'),
+    app = express();
 
-var restify = require('restify');
-var builder = require('botbuilder');
-var botbuilder_azure = require("botbuilder-azure");
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
-// Setup Restify Server
-var server = restify.createServer();
-server.listen(process.env.port || process.env.PORT || 3978, function() {
-    console.log('%s listening to %s', server.name, server.url);
+// uncomment after placing your favicon in /public
+//app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) =>
+    res.render('index', {
+        title: 'DemoChat '
+    })
+);
+
+// catch 404 and forward to error handler
+app.use((req, res, next) => {
+    let err = new Error('Not Found');
+    err.status = 404;
+    next(err);
 });
 
-// Create chat connector for communicating with the Bot Framework Service
-var connector = new builder.ChatConnector({
-    appId: process.env.MicrosoftAppId,
-    appPassword: process.env.MicrosoftAppPassword,
-    openIdMetadata: process.env.BotOpenIdMetadata
+// error handlers
+
+// development error handler
+// will print stacktrace
+if (app.get('env') === 'development') {
+    app.use((err, req, res, next) => {
+        res.status(err.status || 500);
+        res.render('error', {
+            message: err.message,
+            error: err
+        });
+    });
+}
+
+// production error handler
+// no stacktraces leaked to user
+app.use((err, req, res, next) => {
+    res.status(err.status || 500);
+    res.render('error', {
+        message: err.message,
+        error: {}
+    });
 });
 
-// Listen for messages from users 
-server.post('/api/messages', connector.listen());
-
-/*----------------------------------------------------------------------------------------
- * Bot Storage: This is a great spot to register the private state storage for your bot. 
- * We provide adapters for Azure Table, CosmosDb, SQL Azure, or you can implement your own!
- * For samples and documentation, see: https://github.com/Microsoft/BotBuilder-Azure
- * ---------------------------------------------------------------------------------------- */
-
-var tableName = 'botdata';
-var azureTableClient = new botbuilder_azure.AzureTableClient(tableName, process.env.AzureWebJobsStorage);
-var tableStorage = new botbuilder_azure.AzureBotStorage({ gzipData: false }, azureTableClient);
-
-// Create your bot with a function to receive messages from the user
-// This default message handler is invoked if the user's utterance doesn't
-// match any intents handled by other dialogs.
-var bot = new builder.UniversalBot(connector, function(session, args) {
-    session.send('You reached the default message handler. You said \'%s\'.', session.message.text);
-});
-
-bot.set('storage', tableStorage);
-
-// Make sure you add code to validate these fields
-var luisAppId = process.env.LuisAppId;
-var luisAPIKey = process.env.LuisAPIKey;
-var luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
-
-const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
-
-// Create a recognizer that gets intents from LUIS, and add it to the bot
-var recognizer = new builder.LuisRecognizer(LuisModelUrl);
-bot.recognizer(recognizer);
-
-// Add a dialog for each intent that the LUIS app recognizes.
-// See https://docs.microsoft.com/en-us/bot-framework/nodejs/bot-builder-nodejs-recognize-intent-luis 
-bot.dialog('GreetingDialog',
-    (session) => {
-        session.send('You reached the Greeting intent. You said \'%s\'.', session.message.text);
-        session.endDialog();
-    }
-).triggerAction({
-    matches: 'Greeting'
-})
-
-bot.dialog('HelpDialog',
-    (session) => {
-        session.send('You reached the Help intent. You said \'%s\'.', session.message.text);
-        session.endDialog();
-    }
-).triggerAction({
-    matches: 'Help'
-})
-
-bot.dialog('CancelDialog',
-    (session) => {
-        session.send('You reached the Cancel intent. You said \'%s\'.', session.message.text);
-        session.endDialog();
-    }
-).triggerAction({
-    matches: 'Cancel'
-})
+module.exports = app;

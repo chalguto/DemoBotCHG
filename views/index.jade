@@ -1,0 +1,15 @@
+extends layout
+block content
+  h1 #{title}
+  br
+ 
+  table.table.table-striped.table-bordered           
+    tr            
+      - var date  = new Date();
+      - var day   = date.getDate();
+      - var month = date.getMonth() + 1;
+      - var year  = date.getFullYear();
+      td Hoy #{day + "/" + month + "/" + year}
+    tr
+      td(style="text-align:center")
+          iframe(width='402px', height='480px', src='https://webchat.botframework.com/embed/DemoBotCHG?s=UE-84ZgQv6s.cwA.jYo.3UGQRgZyvJyU4u3UXG1zYY6OhKfoX2qh8MX6izB77LU', frameborder='0', allowfullscreen='allowfullscreen')      
